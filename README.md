@@ -31,6 +31,24 @@ Para una prueba rapida de entrenamiento:
 .\.venv\Scripts\python.exe src\train.py --epochs 1 --sample-limit 1200
 ```
 
+Si existe `dataset/senas_reales_entrenamiento/`, el entrenamiento la usa
+automaticamente. Esa carpeta debe tener subcarpetas por letra, por ejemplo
+`A/`, `B/`, `C/`, hasta `Y/` sin `J` ni `Z`. Las imagenes reales se recortan
+con MediaPipe antes de entrar al modelo y se repiten con peso `x4` para que
+influyan mas que el dataset base.
+
+Para ajustar ese peso:
+
+```powershell
+.\.venv\Scripts\python.exe src\train.py --real-weight 6
+```
+
+Para entrenar solo con Sign MNIST y comparar:
+
+```powershell
+.\.venv\Scripts\python.exe src\train.py --no-real-data
+```
+
 El entrenamiento completo crea:
 
 - `models/asl_cnn.keras`
@@ -78,6 +96,7 @@ o la tecla de privacidad de la camara.
 src/
   app.py              # app de camara en tiempo real
   train.py            # entrenamiento, validacion y metricas
+  real_images.py      # carga y recorte de imagenes reales por letra
   labels.py           # mapa Sign MNIST -> letras
   preprocessing.py    # normalizacion para CNN
   motion_letters.py   # detector temporal para J/Z

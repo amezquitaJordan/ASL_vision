@@ -19,6 +19,7 @@ if __package__ is None or __package__ == "":
 
 from src.labels import class_names, label_to_model_index, model_index_to_label
 from src.preprocessing import IMAGE_SIZE, normalize_pixels
+from src.real_images import load_real_image_dataset
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +28,7 @@ TEST_CSV = ROOT / "dataset" / "sign_mnist_test.csv"
 MODEL_PATH = ROOT / "models" / "asl_cnn.keras"
 CLASS_MAP_PATH = ROOT / "models" / "class_map.json"
 REPORTS_DIR = ROOT / "reports"
+REAL_IMAGE_DIR = ROOT / "dataset" / "senas_reales_entrenamiento"
 
 
 def load_dataset(csv_path: Path) -> tuple[np.ndarray, np.ndarray]:
@@ -67,7 +69,29 @@ def build_model(num_classes: int) -> keras.Model:
     return model
 
 
-def save_reports(y_true: np.ndarray, y_pred: np.ndarray, history: keras.callbacks.History) -> None:
+def merge_training_data(
+    sign_x: np.ndarray,
+    sign_y: np.ndarray,
+    real_x: np.ndarray,
+    real_y: np.ndarray,
+    real_weight: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Append real camera samples, repeated so they matter during training."""
+    if real_x.size == 0 or real_y.size == 0 or real_weight <= 0:
+        return sign_x, sign_y
+
+    repeated_x = np.repeat(real_x, repeats=real_weight, axis=0)
+    repeated_y = np.repeat(real_y, repeats=real_weight, axis=0)
+    return np.concatenate([sign_x, repeated_x], axis=0), np.concatenate([sign_y, repeated_y], axis=0)
+
+
+def save_reports(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    history: keras.callbacks.History,
+    real_training_images: int = 0,
+    real_training_weight: int = 0,
+) -> None:
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     names = class_names()
     report = classification_report(y_true, y_pred, target_names=names, zero_division=0)
@@ -77,6 +101,8 @@ def save_reports(y_true: np.ndarray, y_pred: np.ndarray, history: keras.callback
         "accuracy": float(np.mean(y_true == y_pred)),
         "macro_f1": float(f1_score(y_true, y_pred, average="macro")),
         "classes": names,
+        "real_training_images": real_training_images,
+        "real_training_weight": real_training_weight,
         "history": {key: [float(value) for value in values] for key, values in history.history.items()},
     }
     (REPORTS_DIR / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
@@ -97,11 +123,27 @@ def save_reports(y_true: np.ndarray, y_pred: np.ndarray, history: keras.callback
     plt.close(fig)
 
 
-def train(epochs: int, batch_size: int, sample_limit: int | None = None) -> keras.Model:
+def train(
+    epochs: int,
+    batch_size: int,
+    sample_limit: int | None = None,
+    real_data_dir: Path | None = REAL_IMAGE_DIR,
+    real_weight: int = 4,
+) -> keras.Model:
     x, y = load_dataset(TRAIN_CSV)
     if sample_limit:
         x = x[:sample_limit]
         y = y[:sample_limit]
+
+    real_count = 0
+    if real_data_dir is not None and real_data_dir.exists():
+        real_x, real_y = load_real_image_dataset(real_data_dir)
+        real_count = int(real_y.size)
+        x, y = merge_training_data(x, y, real_x, real_y, real_weight=real_weight)
+        print(f"Imagenes reales cargadas: {real_count} (peso x{real_weight})")
+    elif real_data_dir is not None:
+        print(f"No se encontro dataset real en: {real_data_dir}")
+
     x_train, x_val, y_train, y_val = train_test_split(
         x,
         y,
@@ -125,7 +167,13 @@ def train(epochs: int, batch_size: int, sample_limit: int | None = None) -> kera
 
     x_test, y_test = load_dataset(TEST_CSV)
     y_pred = np.argmax(model.predict(x_test), axis=1)
-    save_reports(y_test, y_pred, history)
+    save_reports(
+        y_test,
+        y_pred,
+        history,
+        real_training_images=real_count,
+        real_training_weight=real_weight if real_count else 0,
+    )
 
     MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
     model.save(MODEL_PATH)
@@ -148,9 +196,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--epochs", type=int, default=12)
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--sample-limit", type=int, default=None)
+    parser.add_argument("--real-data-dir", type=Path, default=REAL_IMAGE_DIR)
+    parser.add_argument("--real-weight", type=int, default=4)
+    parser.add_argument("--no-real-data", action="store_true")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    train(epochs=args.epochs, batch_size=args.batch_size, sample_limit=args.sample_limit)
+    train(
+        epochs=args.epochs,
+        batch_size=args.batch_size,
+        sample_limit=args.sample_limit,
+        real_data_dir=None if args.no_real_data else args.real_data_dir,
+        real_weight=args.real_weight,
+    )
