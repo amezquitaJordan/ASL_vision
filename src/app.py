@@ -1,10 +1,9 @@
-"""Real-time ASL alphabet detector with camera and OpenAI TTS."""
+"""Real-time ASL alphabet detector with camera."""
 
 from __future__ import annotations
 
 import os
 import sys
-import time
 from collections import Counter, deque
 from pathlib import Path
 
@@ -20,7 +19,6 @@ from src.hand_tracking import create_hand_tracker
 from src.labels import class_names
 from src.motion_letters import MotionLetterDetector
 from src.preprocessing import preprocess_camera_crop
-from src.tts import TTSConfig, ensure_audio, play_audio, should_speak
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -56,13 +54,6 @@ def run() -> None:
     names = class_names()
     threshold = env_float("CONFIDENCE_THRESHOLD", 0.75)
     camera_index = env_int("CAMERA_INDEX", 0)
-    tts_config = TTSConfig(
-        voice=os.getenv("TTS_VOICE", "coral"),
-        stable_frames=env_int("TTS_STABLE_FRAMES", 8),
-        cooldown_seconds=env_float("TTS_COOLDOWN_SECONDS", 1.5),
-        audio_dir=ROOT / "audio_cache",
-    )
-    tts_state = {"letter": None, "count": 0, "last_spoken": {}}
     prediction_history: deque[str] = deque(maxlen=6)
     motion_detector = MotionLetterDetector()
     hand_tracker = create_hand_tracker()
@@ -110,11 +101,6 @@ def run() -> None:
             else:
                 motion_detector.reset()
                 prediction_history.clear()
-
-            tts_state["now"] = time.time()
-            if should_speak(letter, tts_state, tts_config):
-                audio_path = ensure_audio(letter, tts_config)
-                play_audio(audio_path)
 
             label_text = f"Letra: {letter or '-'}"
             conf_text = f"Confianza: {confidence:.2f}"

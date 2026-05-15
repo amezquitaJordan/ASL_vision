@@ -1,6 +1,6 @@
-# Detector de abecedario ASL con CNN, camara y voz
+# Detector de abecedario ASL con CNN y camara
 
-Proyecto local para Visual Studio Code. Detecta letras del alfabeto ASL con la camara, muestra la letra en pantalla y puede pronunciarla usando OpenAI Text-to-Speech.
+Proyecto local para Visual Studio Code. Detecta letras del alfabeto ASL con la camara y muestra la letra en pantalla.
 
 ## Enfoque
 
@@ -8,7 +8,6 @@ Proyecto local para Visual Studio Code. Detecta letras del alfabeto ASL con la c
 - Metricas guardadas en `reports/`: accuracy, macro F1, matriz de confusion y reporte por clase.
 - Camara en tiempo real con OpenCV y MediaPipe Hands.
 - Letras `J` y `Z` detectadas por movimiento del dedo indice, porque Sign MNIST no trae esas etiquetas.
-- Voz con OpenAI TTS y cache local en `audio_cache/`.
 
 ## Configuracion en Windows
 
@@ -16,29 +15,20 @@ Abre esta carpeta en Visual Studio Code y ejecuta en la terminal:
 
 ```powershell
 C:\Users\jorda\AppData\Local\Programs\Python\Python312\python.exe -m venv .venv
-.\.venv\Scripts\activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
-
-Edita `.env` y agrega tu clave:
-
-```env
-OPENAI_API_KEY=sk-tu_api_key_aqui
-```
-
-La app tambien funciona sin API key, pero no generara voz.
 
 ## Entrenar el modelo
 
 ```powershell
-python src/train.py
+.\.venv\Scripts\python.exe src\train.py
 ```
 
 Para una prueba rapida de entrenamiento:
 
 ```powershell
-python src/train.py --epochs 1 --sample-limit 1200
+.\.venv\Scripts\python.exe src\train.py --epochs 1 --sample-limit 1200
 ```
 
 El entrenamiento completo crea:
@@ -52,7 +42,7 @@ El entrenamiento completo crea:
 ## Ejecutar la camara
 
 ```powershell
-python src/app.py
+.\.venv\Scripts\python.exe src\app.py
 ```
 
 Controles:
@@ -64,7 +54,13 @@ Si ves una pantalla negra con un icono de camara tachada, OpenCV esta recibiendo
 la imagen de una camara bloqueada, apagada o incorrecta. Prueba:
 
 ```powershell
-python src/camera_probe.py
+.\.venv\Scripts\python.exe src\camera_probe.py
+```
+
+## Ejecutar pruebas
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -v
 ```
 
 Luego usa en `.env` el indice que muestre una imagen real, por ejemplo:
@@ -85,7 +81,6 @@ src/
   labels.py           # mapa Sign MNIST -> letras
   preprocessing.py    # normalizacion para CNN
   motion_letters.py   # detector temporal para J/Z
-  tts.py              # OpenAI TTS con cache local
 tests/
   test_*.py           # pruebas unitarias basicas
 ```
