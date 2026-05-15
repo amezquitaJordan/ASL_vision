@@ -135,15 +135,6 @@ def train(
         x = x[:sample_limit]
         y = y[:sample_limit]
 
-    real_count = 0
-    if real_data_dir is not None and real_data_dir.exists():
-        real_x, real_y = load_real_image_dataset(real_data_dir)
-        real_count = int(real_y.size)
-        x, y = merge_training_data(x, y, real_x, real_y, real_weight=real_weight)
-        print(f"Imagenes reales cargadas: {real_count} (peso x{real_weight})")
-    elif real_data_dir is not None:
-        print(f"No se encontro dataset real en: {real_data_dir}")
-
     x_train, x_val, y_train, y_val = train_test_split(
         x,
         y,
@@ -151,6 +142,28 @@ def train(
         random_state=42,
         stratify=y,
     )
+
+    real_count = 0
+    if real_data_dir is not None and real_data_dir.exists():
+        real_x, real_y = load_real_image_dataset(real_data_dir)
+        real_count = int(real_y.size)
+        
+        rx_train, rx_val, ry_train, ry_val = train_test_split(
+            real_x,
+            real_y,
+            test_size=0.15,
+            random_state=42,
+            stratify=real_y,
+        )
+        
+        x_train, y_train = merge_training_data(x_train, y_train, rx_train, ry_train, real_weight=real_weight)
+        
+        x_val = np.concatenate([x_val, rx_val], axis=0)
+        y_val = np.concatenate([y_val, ry_val], axis=0)
+        
+        print(f"Imagenes reales cargadas: {real_count} (peso x{real_weight} solo en train)")
+    elif real_data_dir is not None:
+        print(f"No se encontro dataset real en: {real_data_dir}")
 
     model = build_model(num_classes=len(class_names()))
     callbacks = [
