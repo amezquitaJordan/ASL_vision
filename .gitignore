@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env.local
+models/*.keras
+models/*.h5
+reports/*.png
+reports/*.json
+reports/*.txt
+audio_cache/*.mp3

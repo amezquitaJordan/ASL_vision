@@ -1,0 +1,1 @@
+"""ASL alphabet detector project."""
