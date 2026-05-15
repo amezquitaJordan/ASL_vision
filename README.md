@@ -1,15 +1,17 @@
-# Detector de abecedario ASL con CNN y camara
+# Detector de abecedario ASL con CNN y cámara
 
-Proyecto local para Visual Studio Code. Detecta letras del alfabeto ASL con la camara y muestra la letra en pantalla.
+Proyecto local para Visual Studio Code. Detecta **24 letras estáticas** del alfabeto ASL con la cámara y muestra la letra en pantalla.
+
+> Las letras `J` y `Z` no están incluidas porque el dataset Sign MNIST no tiene imágenes estáticas para ellas (requieren movimiento). El modelo reconoce A–Y excluyendo J.
 
 ## Enfoque
 
 - CNN entrenada con `dataset/sign_mnist_train.csv` y evaluada con `dataset/sign_mnist_test.csv`.
-- Metricas guardadas en `reports/`: accuracy, macro F1, matriz de confusion y reporte por clase.
-- Camara en tiempo real con OpenCV y MediaPipe Hands.
-- Letras `J` y `Z` detectadas por movimiento del dedo indice, porque Sign MNIST no trae esas etiquetas.
+- Métricas guardadas en `reports/`: accuracy, macro F1, matriz de confusión y reporte por clase.
+- Cámara en tiempo real con OpenCV y MediaPipe Hands.
+- Solo letras estáticas: **24 clases** (A–Y sin J).
 
-## Configuracion en Windows
+## Configuración en Windows
 
 Abre esta carpeta en Visual Studio Code y ejecuta en la terminal:
 
@@ -25,17 +27,17 @@ C:\Users\jorda\AppData\Local\Programs\Python\Python312\python.exe -m venv .venv
 .\.venv\Scripts\python.exe src\train.py
 ```
 
-Para una prueba rapida de entrenamiento:
+Para una prueba rápida de entrenamiento:
 
 ```powershell
 .\.venv\Scripts\python.exe src\train.py --epochs 1 --sample-limit 1200
 ```
 
 Si existe `dataset/senas_reales_entrenamiento/`, el entrenamiento la usa
-automaticamente. Esa carpeta debe tener subcarpetas por letra, por ejemplo
-`A/`, `B/`, `C/`, hasta `Y/` sin `J` ni `Z`. Las imagenes reales se recortan
+automáticamente. Esa carpeta debe tener subcarpetas por letra, por ejemplo
+`A/`, `B/`, `C/`, hasta `Y/` sin `J` ni `Z`. Las imágenes reales se recortan
 con MediaPipe antes de entrar al modelo y se repiten con peso `x4` para que
-influyan mas que el dataset base.
+influyan más que el dataset base.
 
 Para ajustar ese peso:
 
@@ -57,7 +59,7 @@ El entrenamiento completo crea:
 - `reports/classification_report.txt`
 - `reports/confusion_matrix.png`
 
-## Ejecutar la camara
+## Ejecutar la cámara
 
 ```powershell
 .\.venv\Scripts\python.exe src\app.py
@@ -66,10 +68,10 @@ El entrenamiento completo crea:
 Controles:
 
 - `q` o `ESC`: salir.
-- Si no abre la camara, cambia `CAMERA_INDEX` en `.env` de `0` a `1`.
+- Si no abre la cámara, cambia `CAMERA_INDEX` en `.env` de `0` a `1`.
 
-Si ves una pantalla negra con un icono de camara tachada, OpenCV esta recibiendo
-la imagen de una camara bloqueada, apagada o incorrecta. Prueba:
+Si ves una pantalla negra con un ícono de cámara tachada, OpenCV está recibiendo
+la imagen de una cámara bloqueada, apagada o incorrecta. Prueba:
 
 ```powershell
 .\.venv\Scripts\python.exe src\camera_probe.py
@@ -81,29 +83,26 @@ la imagen de una camara bloqueada, apagada o incorrecta. Prueba:
 .\.venv\Scripts\python.exe -m unittest discover -v
 ```
 
-Luego usa en `.env` el indice que muestre una imagen real, por ejemplo:
+Luego usa en `.env` el índice que muestre una imagen real, por ejemplo:
 
 ```env
 CAMERA_INDEX=1
 ```
 
-Tambien revisa el permiso de camara de Windows, el obturador fisico del portatil
-o la tecla de privacidad de la camara.
+También revisa el permiso de cámara de Windows, el obturador físico del portátil
+o la tecla de privacidad de la cámara.
 
 ## Estructura
 
 ```text
 src/
-  app.py              # app de camara en tiempo real
-  train.py            # entrenamiento, validacion y metricas
-  real_images.py      # carga y recorte de imagenes reales por letra
-  labels.py           # mapa Sign MNIST -> letras
-  preprocessing.py    # normalizacion para CNN
-  motion_letters.py   # detector temporal para J/Z
+  app.py              # app de cámara en tiempo real (24 letras estáticas)
+  train.py            # entrenamiento, validación y métricas
+  real_images.py      # carga y recorte de imágenes reales por letra
+  labels.py           # mapa Sign MNIST -> letras (excluye J y Z)
+  preprocessing.py    # normalización para CNN
+  hand_tracking.py    # detección de manos con MediaPipe o ROI fijo
+  camera_probe.py     # utilidad para detectar el índice de cámara correcto
 tests/
-  test_*.py           # pruebas unitarias basicas
+  test_*.py           # pruebas unitarias básicas
 ```
-
-## Nota importante sobre J y Z
-
-El dataset Sign MNIST omite las etiquetas 9 y 25 porque `J` y `Z` son signos con movimiento. Por eso el proyecto usa un enfoque hibrido: CNN para 24 letras estaticas y detector temporal para `J`/`Z`.

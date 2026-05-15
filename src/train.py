@@ -284,9 +284,8 @@ def train(
         json.dumps(
             {
                 "model_index_to_sign_mnist_label": model_index_to_label(),
+                # Las 24 letras estáticas que reconoce el modelo (sin J ni Z)
                 "class_names": class_names(),
-                # Letras de movimiento excluidas del modelo (se detectan por trayectoria)
-                "motion_letters": {"J": 9, "Z": 25},
             },
             indent=2,
         ),
