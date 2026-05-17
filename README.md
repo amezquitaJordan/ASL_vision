@@ -127,6 +127,6 @@ src/
 tests/
   test_*.py            # pruebas unitarias del flujo estático
 ```
-#Data set: https://drive.google.com/drive/folders/1WLcj9njN9CjMo-PWBhzANKolAB1X_1J8?usp=drive_link
+## Data set: https://drive.google.com/drive/folders/1WLcj9njN9CjMo-PWBhzANKolAB1X_1J8?usp=drive_link
 
-#Gran parte de kas imagenes fueron sacadas del dataset: https://www.kaggle.com/datasets/kirlelea/spanish-sign-language-alphabet-static
+## Gran parte de kas imagenes fueron sacadas del dataset: https://www.kaggle.com/datasets/kirlelea/spanish-sign-language-alphabet-static
