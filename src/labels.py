@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from string import ascii_uppercase
 
-# Etiquetas excluidas del modelo porque Sign MNIST no tiene imágenes estáticas para ellas.
-# J (9) y Z (25) requieren movimiento y quedan fuera del alcance de este detector.
+# Etiquetas excluidas porque no pertenecen al alcance estático del proyecto.
+# J (9) y Z (25) son letras dinámicas y quedan fuera del detector.
 _ETIQUETAS_EXCLUIDAS = {9, 25}
 
 # Mapea un índice numérico del dataset a su letra estática (A-Y, sin J ni Z)

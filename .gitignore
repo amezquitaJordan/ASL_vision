@@ -2,10 +2,9 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+.env
 .env.local
-models/*.keras
-models/*.h5
-reports/*.png
-reports/*.json
-reports/*.txt
+dataset/
+models/
+reports/
 audio_cache/*.mp3

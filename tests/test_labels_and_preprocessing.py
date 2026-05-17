@@ -7,7 +7,7 @@ from src.preprocessing import normalize_pixels, reshape_flat_image
 
 
 class LabelAndPreprocessingTests(unittest.TestCase):
-    def test_sign_mnist_labels_skip_motion_letters(self):
+    def test_sign_mnist_labels_skip_dynamic_letters(self):
         self.assertEqual(letter_from_label(0), "A")
         self.assertEqual(letter_from_label(8), "I")
         self.assertEqual(letter_from_label(10), "K")

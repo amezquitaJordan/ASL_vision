@@ -1,8 +1,8 @@
 """
 ARCHIVO: train.py
 MÓDULO: Entrenamiento del Modelo
-DESCRIPCIÓN: Entrena y evalúa la red neuronal CNN para el reconocimiento del alfabeto ASL.
-PARTE DE LA APP QUE CONTROLA: Construcción, entrenamiento y guardado del modelo principal (asl_cnn.keras).
+DESCRIPCIÓN: Entrena y evalúa la red neuronal CNN para comparar contra Sign MNIST.
+PARTE DE LA APP QUE CONTROLA: Construcción, entrenamiento y guardado del modelo CNN de comparación.
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ REAL_IMAGE_DIR = ROOT / "dataset" / "senas_reales_entrenamiento"
 def load_dataset(csv_path: Path) -> tuple[np.ndarray, np.ndarray]:
     """
     Función: Carga el dataset CSV del Sign MNIST y lo convierte en imágenes 28x28 listas para la CNN.
-    Filtra las etiquetas no válidas (letras J y Z que requieren movimiento).
+    Filtra las etiquetas no válidas para el alcance estático (J y Z).
     Parámetros: csv_path (Path) - ruta al archivo CSV de entrenamiento o prueba.
     """
     data = pd.read_csv(csv_path)
@@ -167,6 +167,9 @@ def save_reports(
     }
     (REPORTS_DIR / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
 
+    import matplotlib
+
+    matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
     # Genera y guarda la imagen de la matriz de confusión
@@ -279,7 +282,7 @@ def train(
     MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
     model.save(MODEL_PATH)
     
-    # Guarda el mapa de clases en JSON para que app.py lo use en tiempo real
+    # Guarda el mapa de clases de la CNN para comparación con el modelo principal
     CLASS_MAP_PATH.write_text(
         json.dumps(
             {

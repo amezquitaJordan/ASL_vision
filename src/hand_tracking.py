@@ -2,7 +2,7 @@
 ARCHIVO: hand_tracking.py
 MÓDULO: Seguimiento de Manos
 DESCRIPCIÓN: Adaptadores de seguimiento de manos utilizando MediaPipe y un modo alternativo basado en OpenCV.
-PARTE DE LA APP QUE CONTROLA: Detección y recorte de la región de la mano en cada fotograma de la cámara.
+PARTE DE LA APP QUE CONTROLA: Detección de la mano, landmarks y región visible en cada fotograma.
 """
 
 from __future__ import annotations
@@ -13,10 +13,11 @@ from typing import Protocol
 import cv2
 import numpy as np
 
+from src.landmarks import bbox_from_landmarks, landmarks_to_feature_vector
 
-# Tipos de datos: caja delimitadora y punto de coordenadas
+
+# Tipo de dato para la caja delimitadora
 BBox = tuple[int, int, int, int]
-Point = tuple[float, float]
 
 
 @dataclass
@@ -25,12 +26,12 @@ class HandDetection:
     Clase: Estructura de datos que guarda el resultado de una detección de mano.
     - bbox: coordenadas de la caja delimitadora (x1, y1, x2, y2)
     - crop: imagen recortada de la mano
-    - motion_point: punta del dedo índice para detectar J o Z
+    - landmark_features: vector de 42 valores usado por el clasificador estático
     - status: texto descriptivo del modo de detección activo
     """
     bbox: BBox
     crop: np.ndarray
-    motion_point: Point | None
+    landmark_features: np.ndarray | None
     status: str
 
 
@@ -66,37 +67,6 @@ def fixed_roi_bbox(frame_width: int, frame_height: int) -> BBox:
     x2 = min(frame_width, x1 + size)
     y2 = min(frame_height, y1 + size)
     return x1, y1, x2, y2
-
-
-def fingertip_from_mask(mask: np.ndarray, roi_origin: tuple[int, int], frame_size: tuple[int, int]) -> Point | None:
-    """
-    Función: Estima la posición de la punta del dedo buscando el punto más alto del contorno mayor.
-    Se normaliza la posición (0 a 1) respecto al tamaño total del fotograma.
-    Parámetros:
-      - mask (np.ndarray): máscara binaria del color de piel.
-      - roi_origin (tuple): esquina superior izquierda del ROI en el fotograma original.
-      - frame_size (tuple): ancho y alto del fotograma completo.
-    """
-    # Encuentra contornos en la máscara
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if not contours:
-        return None
-
-    # Toma el contorno más grande (se asume que es la mano)
-    largest = max(contours, key=cv2.contourArea)
-    
-    # Descarta contornos muy pequeños que probablemente son ruido
-    if cv2.contourArea(largest) < 120:
-        return None
-
-    # Identifica el punto más alto del contorno (la punta del dedo)
-    topmost = tuple(largest[largest[:, :, 1].argmin()][0])
-    frame_width, frame_height = frame_size
-    
-    # Convierte la coordenada local del ROI a coordenadas normalizadas del fotograma
-    x = (roi_origin[0] + int(topmost[0])) / frame_width
-    y = (roi_origin[1] + int(topmost[1])) / frame_height
-    return x, y
 
 
 class MediaPipeHandTracker:
@@ -144,21 +114,14 @@ class MediaPipeHandTracker:
         landmarks = result.multi_hand_landmarks[0]
         self._last_landmarks = landmarks
         
-        # Calcula la caja delimitadora a partir de los landmarks con un margen extra
-        xs = [landmark.x for landmark in landmarks.landmark]
-        ys = [landmark.y for landmark in landmarks.landmark]
-        padding = 35
-        x1 = max(0, int(min(xs) * width) - padding)
-        y1 = max(0, int(min(ys) * height) - padding)
-        x2 = min(width, int(max(xs) * width) + padding)
-        y2 = min(height, int(max(ys) * height) + padding)
+        # Calcula la caja delimitadora y el vector de landmarks para clasificar la seña
+        x1, y1, x2, y2 = bbox_from_landmarks(landmarks, width, height)
+        landmark_features = landmarks_to_feature_vector(landmarks)
         
-        # El punto de movimiento es la punta del dedo índice (landmark 8)
-        index_tip = landmarks.landmark[8]
         return HandDetection(
             bbox=(x1, y1, x2, y2),
             crop=frame[y1:y2, x1:x2],
-            motion_point=(index_tip.x, index_tip.y),
+            landmark_features=landmark_features,
             status=self.status,
         )
 
@@ -203,25 +166,10 @@ class FixedRoiHandTracker:
         x1, y1, x2, y2 = fixed_roi_bbox(width, height)
         crop = frame[y1:y2, x1:x2]
         
-        # Convierte el recorte al espacio de color HSV para segmentar la piel
-        hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
-        
-        # Rango de color de piel en HSV
-        lower_skin = np.array([0, 25, 35], dtype=np.uint8)
-        upper_skin = np.array([25, 255, 255], dtype=np.uint8)
-        mask = cv2.inRange(hsv, lower_skin, upper_skin)
-        
-        # Aplica operaciones morfológicas para limpiar el ruido en la máscara
-        kernel = np.ones((5, 5), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-        
-        # Estima la punta del dedo a partir de la máscara de piel
-        point = fingertip_from_mask(mask, roi_origin=(x1, y1), frame_size=(width, height))
         return HandDetection(
             bbox=(x1, y1, x2, y2),
             crop=crop,
-            motion_point=point,
+            landmark_features=None,
             status=self.status,
         )
 
