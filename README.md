@@ -63,8 +63,6 @@ El entrenamiento genera:
 
 Revisa `reports/landmark_metrics.json`: si alguna letra tiene pocas imágenes útiles, agrega más fotos con buena luz, mano completa y variaciones leves de posición.
 
-El entrenamiento también descarta imágenes idénticas que aparezcan en carpetas de letras distintas. Eso evita que el modelo aprenda etiquetas contradictorias, por ejemplo una misma foto repetida en `V/` y `W/`.
-
 ## Ejecutar la cámara
 
 ```powershell
